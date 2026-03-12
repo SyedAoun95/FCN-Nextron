@@ -98,22 +98,24 @@ const sentence = "Welcome to Family Cable Network Management System";
 
 export default function Home() {
   return (
-    <main className="w-full min-h-screen bg-gray-900 text-white">
+    <main className="w-full min-h-screen bg-gray-900 text-white flex items-center justify-center">
       <div className="max-w-3xl mx-auto px-6 py-20 text-center">
-        <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold mb-6 leading-snug">
+
+        <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold mb-6 leading-snug animate-fadeUp">
           {sentence}
         </h1>
 
-        <p className="text-gray-300 mb-8 text-lg">
+        <p className="text-gray-300 mb-8 text-lg animate-fadeUp">
           Manage connections, billing, and reports effortlessly.
         </p>
 
         <Link
           href="/login"
-          className="inline-block px-8 py-4 bg-[#732AE2] text-white rounded-lg text-lg font-medium hover:bg-[#5f22c0] transition shadow-lg"
+          className="inline-block px-8 py-4 bg-[#732AE2] text-white rounded-lg text-lg font-medium hover:bg-[#5f22c0] transition shadow-lg animate-fadeUp"
         >
           Go to Dashboard
         </Link>
+
       </div>
     </main>
   );
