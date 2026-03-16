@@ -14,6 +14,27 @@ export default function LoginPage() {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // test code start 
+const [showServerConfig, setShowServerConfig] = useState(false);
+
+const [serverUrl, setServerUrl] = useState(
+  localStorage.getItem("server_url") || "http://192.168.1.116:5984"
+);
+
+const [serverDB, setServerDB] = useState(
+  localStorage.getItem("server_db") || "db_fcn"
+);
+
+const [serverUser, setServerUser] = useState(
+  localStorage.getItem("server_user") || "admin"
+);
+
+const [serverPass, setServerPass] = useState(
+  localStorage.getItem("server_pass") || "512141"
+);
+
+  // test code end
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -61,9 +82,38 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+const saveServerConfig = async () => {
+  try {
+    const testUrl = `${serverUrl}/_up`;
 
+    const res = await fetch(testUrl);
+
+    if (!res.ok) {
+      throw new Error("Server not reachable");
+    }
+
+    localStorage.setItem("server_url", serverUrl);
+    localStorage.setItem("server_db", serverDB);
+    localStorage.setItem("server_user", serverUser);
+    localStorage.setItem("server_pass", serverPass);
+
+    alert("Server connected successfully");
+
+    window.location.reload();
+
+  } catch (err) {
+    alert("Cannot connect to server. Please check the IP.");
+  }
+};
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-800 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-800 flex items-center justify-center p-4 relative">
+
+<button
+  onClick={() => setShowServerConfig(true)}
+  className="absolute top-6 left-6 bg-gray-800 hover:bg-gray-700 p-3 rounded-xl text-white shadow-lg"
+>
+⚙
+</button>
       <div className="w-full max-w-5xl bg-gray-900/80 backdrop-blur-lg border border-gray-700 rounded-3xl shadow-2xl overflow-hidden">
         <div className="flex flex-col lg:flex-row">
           {/* Left side - Brand/Info */}
@@ -237,6 +287,69 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+      {showServerConfig && (
+  <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+
+    <div className="bg-gray-900 p-8 rounded-2xl w-[400px] border border-gray-700">
+
+      <h3 className="text-xl text-white mb-6 font-semibold">
+        Configure Server
+      </h3>
+
+      <div className="space-y-4">
+
+        <input
+          className="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700"
+          value={serverUrl}
+          onChange={(e) => setServerUrl(e.target.value)}
+          placeholder="Server URL"
+        />
+
+        <input
+          className="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700"
+          value={serverDB}
+          onChange={(e) => setServerDB(e.target.value)}
+          placeholder="Database Name"
+        />
+
+        <input
+          className="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700"
+          value={serverUser}
+          onChange={(e) => setServerUser(e.target.value)}
+          placeholder="Username"
+        />
+
+        <input
+          type="password"
+          className="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700"
+          value={serverPass}
+          onChange={(e) => setServerPass(e.target.value)}
+          placeholder="Password"
+        />
+
+      </div>
+
+      <div className="flex justify-end gap-3 mt-6">
+
+        <button
+          onClick={() => setShowServerConfig(false)}
+          className="px-4 py-2 bg-gray-700 rounded-lg"
+        >
+          Cancel
+        </button>
+
+        <button
+          onClick={saveServerConfig}
+          className="px-4 py-2 bg-blue-600 rounded-lg"
+        >
+          Save
+        </button>
+
+      </div>
+
+    </div>
+  </div>
+)}
     </div>
   );
 }

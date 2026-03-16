@@ -7,10 +7,28 @@ export const initDB = async () => {
 
   PouchDB.plugin(PouchDBFind);
 
-  const localDB = new PouchDB("crud-database");
-const remoteDB = new PouchDB(
-  "http://admin:512141@192.168.1.116:5984/db_fcn"
-);
+//   const localDB = new PouchDB("crud-database");
+// const remoteDB = new PouchDB(
+//   "http://admin:512141@192.168.1.116:5984/db_fcn"
+// );
+const localDB = new PouchDB("crud-database");
+
+const savedServerUrl = localStorage.getItem("server_url");
+const savedDbName = localStorage.getItem("server_db");
+const savedUsername = localStorage.getItem("server_user");
+const savedPassword = localStorage.getItem("server_pass");
+
+if (!savedServerUrl || !savedDbName || !savedUsername || !savedPassword) {
+  throw new Error("Server not configured. Please configure the server first.");
+}
+
+const remoteDB = new PouchDB(`${savedServerUrl}/${savedDbName}`, {
+  auth: {
+    username: savedUsername,
+    password: savedPassword,
+  },
+});
+
 
   // ---------------------------
   // LIVE TWO-WAY SYNC
