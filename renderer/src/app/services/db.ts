@@ -8,9 +8,9 @@ export const initDB = async () => {
   PouchDB.plugin(PouchDBFind);
 
   const localDB = new PouchDB("crud-database");
-  const remoteDB = new PouchDB(
-    "http://admin:512141@127.0.0.1:5984/db_fcn"
-  );
+const remoteDB = new PouchDB(
+  "http://admin:512141@192.168.1.116:5984/db_fcn"
+);
 
   // ---------------------------
   // LIVE TWO-WAY SYNC
