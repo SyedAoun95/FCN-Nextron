@@ -7,27 +7,27 @@ export const initDB = async () => {
 
   PouchDB.plugin(PouchDBFind);
 
-//   const localDB = new PouchDB("crud-database");
-// const remoteDB = new PouchDB(
-//   "http://admin:512141@192.168.1.116:5984/db_fcn"
-// );
-const localDB = new PouchDB("crud-database");
+  const localDB = new PouchDB("crud-database");
+const remoteDB = new PouchDB(
+  "http://admin:512141@192.168.1.108:5984/db_fcn"
+);
+// const localDB = new PouchDB("crud-database");
 
-const savedServerUrl = localStorage.getItem("server_url");
-const savedDbName = localStorage.getItem("server_db");
-const savedUsername = localStorage.getItem("server_user");
-const savedPassword = localStorage.getItem("server_pass");
+// const savedServerUrl = localStorage.getItem("server_url");
+// const savedDbName = localStorage.getItem("server_db");
+// const savedUsername = localStorage.getItem("server_user");
+// const savedPassword = localStorage.getItem("server_pass");
 
-if (!savedServerUrl || !savedDbName || !savedUsername || !savedPassword) {
-  throw new Error("Server not configured. Please configure the server first.");
-}
+// if (!savedServerUrl || !savedDbName || !savedUsername || !savedPassword) {
+//   throw new Error("Server not configured. Please configure the server first.");
+// }
 
-const remoteDB = new PouchDB(`${savedServerUrl}/${savedDbName}`, {
-  auth: {
-    username: savedUsername,
-    password: savedPassword,
-  },
-});
+// const remoteDB = new PouchDB(`${savedServerUrl}/${savedDbName}`, {
+//   auth: {
+//     username: savedUsername,
+//     password: savedPassword,
+//   },
+// });
 
 
   // ---------------------------
@@ -79,11 +79,19 @@ const remoteDB = new PouchDB(`${savedServerUrl}/${savedDbName}`, {
     return localDB.put(doc);
   };
 
+  // const getAreas = async () => {
+  //   await localDB.createIndex({ index: { fields: ["type"] } });
+  //   const res = await localDB.find({ selector: { type: "area" } });
+  //   return res.docs;
+  // };
   const getAreas = async () => {
-    await localDB.createIndex({ index: { fields: ["type"] } });
-    const res = await localDB.find({ selector: { type: "area" } });
-    return res.docs;
-  };
+  await localDB.createIndex({ index: { fields: ["type"] } });
+  const res = await localDB.find({
+    selector: { type: "area" },
+    limit: 1000,
+  });
+  return res.docs;
+};
 
   const deleteArea = async (area: any) => {
     return localDB.remove(area);
@@ -138,18 +146,31 @@ const remoteDB = new PouchDB(`${savedServerUrl}/${savedDbName}`, {
   return localDB.put(doc);
 };
 
+  // const getPersonsByArea = async (areaId: string) => {
+  //   await localDB.createIndex({
+  //     index: { fields: ["type", "areaId"] },
+  //   });
+
+  //   const res = await localDB.find({
+  //     selector: { type: "person", areaId },
+  //   });
+
+  //   return res.docs;
+  // };
+
   const getPersonsByArea = async (areaId: string) => {
-    await localDB.createIndex({
-      index: { fields: ["type", "areaId"] },
-    });
+  const res = await localDB.allDocs({ include_docs: true });
 
-    const res = await localDB.find({
-      selector: { type: "person", areaId },
-    });
-
-    return res.docs;
-  };
-
+  return res.rows
+    .map((row: any) => row.doc)
+    .filter(
+      (doc: any) =>
+        doc &&
+        !doc._deleted &&
+        doc.type === "person" &&
+        doc.areaId === areaId
+    );
+};
   const updatePerson = async (person: any, updates: any) => {
     if (!person._id || !person._rev)
       throw new Error("_id and _rev required");
@@ -189,69 +210,119 @@ const remoteDB = new PouchDB(`${savedServerUrl}/${savedDbName}`, {
   // ---------------------------
   // AGGREGATION HELPERS
   // ---------------------------
+  // const totalConnections = async () => {
+  //   await localDB.createIndex({ index: { fields: ['type', 'name', 'areaId'] } });
+  //   const res = await localDB.find({
+  //     selector: {
+  //       type: 'person',
+  //       name: { $exists: true },
+  //       areaId: { $exists: true }
+  //     }
+  //   });
+  //   return res.docs.length;
+  // };
   const totalConnections = async () => {
-    await localDB.createIndex({ index: { fields: ['type', 'name', 'areaId'] } });
-    const res = await localDB.find({
-      selector: {
-        type: 'person',
-        name: { $exists: true },
-        areaId: { $exists: true }
-      }
-    });
-    return res.docs.length;
-  };
+  const persons = await getAllPersons();
+  return persons.length;
+};
+
+  // const getAllPersons = async () => {
+  //   await localDB.createIndex({ index: { fields: ['type', 'name', 'areaId', 'amount', 'createdAt'] } });
+  //   const res = await localDB.find({ selector: { type: 'person' } });
+  //   return res.docs;
+  // };
 
   const getAllPersons = async () => {
-    await localDB.createIndex({ index: { fields: ['type', 'name', 'areaId', 'amount', 'createdAt'] } });
-    const res = await localDB.find({ selector: { type: 'person' } });
-    return res.docs;
-  };
+  const res = await localDB.allDocs({ include_docs: true });
 
+  return res.rows
+    .map((row: any) => row.doc)
+    .filter((doc: any) => doc && !doc._deleted && doc.type === "person");
+};
+  // const grandTotalRevenue = async () => {
+  //   await localDB.createIndex({ index: { fields: ['type', 'amount'] } });
+  //   const res = await localDB.find({ selector: { type: 'person' } });
+  //   return res.docs.reduce((sum: number, d: any) => sum + (Number(d.amount) || 0), 0);
+  // };
   const grandTotalRevenue = async () => {
-    await localDB.createIndex({ index: { fields: ['type', 'amount'] } });
-    const res = await localDB.find({ selector: { type: 'person' } });
-    return res.docs.reduce((sum: number, d: any) => sum + (Number(d.amount) || 0), 0);
-  };
+  const persons = await getAllPersons();
+  return persons.reduce((sum: number, d: any) => sum + (Number(d.amount) || 0), 0);
+};
 
-  const monthlyRevenue = async (year: number, month: number) => {
-    await localDB.createIndex({ index: { fields: ['type', 'createdAt', 'amount'] } });
-    const res = await localDB.find({ selector: { type: 'person' } });
-    const total = res.docs.reduce((sum: number, d: any) => {
-      if (!d.createdAt) return sum;
-      const dt = new Date(d.createdAt);
-      if (dt.getFullYear() === year && dt.getMonth() + 1 === month) {
-        return sum + (Number(d.amount) || 0);
-      }
-      return sum;
-    }, 0);
-    return total;
-  };
+  // const monthlyRevenue = async (year: number, month: number) => {
+  //   await localDB.createIndex({ index: { fields: ['type', 'createdAt', 'amount'] } });
+  //   const res = await localDB.find({ selector: { type: 'person' } });
+  //   const total = res.docs.reduce((sum: number, d: any) => {
+  //     if (!d.createdAt) return sum;
+  //     const dt = new Date(d.createdAt);
+  //     if (dt.getFullYear() === year && dt.getMonth() + 1 === month) {
+  //       return sum + (Number(d.amount) || 0);
+  //     }
+  //     return sum;
+  //   }, 0);
+  //   return total;
+  // };
+const monthlyRevenue = async (year: number, month: number) => {
+  const persons = await getAllPersons();
 
-  const monthlyRevenueHistory = async (monthsBack = 12) => {
-    await localDB.createIndex({ index: { fields: ['type', 'createdAt', 'amount'] } });
-    const res = await localDB.find({ selector: { type: 'person' } });
+  return persons.reduce((sum: number, d: any) => {
+    if (!d.createdAt) return sum;
+    const dt = new Date(d.createdAt);
 
-    const map: Record<string, number> = {};
-    const now = new Date();
-
-    for (let i = 0; i < monthsBack; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      map[key] = 0;
+    if (dt.getFullYear() === year && dt.getMonth() + 1 === month) {
+      return sum + (Number(d.amount) || 0);
     }
 
-    res.docs.forEach((d: any) => {
-      if (!d.createdAt) return;
-      const dt = new Date(d.createdAt);
-      const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
-      if (map[key] !== undefined) {
-        map[key] += (Number(d.amount) || 0);
-      }
-    });
+    return sum;
+  }, 0);
+};
+  // const monthlyRevenueHistory = async (monthsBack = 12) => {
+  //   await localDB.createIndex({ index: { fields: ['type', 'createdAt', 'amount'] } });
+  //   const res = await localDB.find({ selector: { type: 'person' } });
 
-    return Object.keys(map).map((k) => ({ month: k, total: map[k] }));
-  };
+  //   const map: Record<string, number> = {};
+  //   const now = new Date();
 
+  //   for (let i = 0; i < monthsBack; i++) {
+  //     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+  //     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  //     map[key] = 0;
+  //   }
+
+  //   res.docs.forEach((d: any) => {
+  //     if (!d.createdAt) return;
+  //     const dt = new Date(d.createdAt);
+  //     const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
+  //     if (map[key] !== undefined) {
+  //       map[key] += (Number(d.amount) || 0);
+  //     }
+  //   });
+
+  //   return Object.keys(map).map((k) => ({ month: k, total: map[k] }));
+  // };
+
+  const monthlyRevenueHistory = async (monthsBack = 12) => {
+  const persons = await getAllPersons();
+  const map: Record<string, number> = {};
+  const now = new Date();
+
+  for (let i = 0; i < monthsBack; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    map[key] = 0;
+  }
+
+  persons.forEach((d: any) => {
+    if (!d.createdAt) return;
+    const dt = new Date(d.createdAt);
+    const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
+    if (map[key] !== undefined) {
+      map[key] += Number(d.amount) || 0;
+    }
+  });
+
+  return Object.keys(map).map((k) => ({ month: k, total: map[k] }));
+};
   // ---------------------------
   // INTERNET ENTRY CRUD
   // ---------------------------

@@ -3,7 +3,7 @@
 import React from 'react';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faGauge,          // <-- NEW Dashboard Icon
+  faGauge,          
   faLocationDot,
   faUserPlus,
   faUserMinus,
@@ -21,17 +21,19 @@ import Link from 'next/link';
 const menuItems = [
   { name: "Dashboard", icon: faGauge, href: "/dashboard" }, // <-- NEW ITEM
   { name: "Add Area", icon: faLocationDot, href: "/areas" },
-  { name: "Add Person", icon: faUserPlus, href: "/persons" },
-  { name: "Internet Entry", icon: faGlobe, href: "/Internet-entery-page" },
+  { name: "Add Connection", icon: faUserPlus, href: "/persons" },
+  
   { name: "Remove Person", icon: faUserMinus, href: "/remove" },
   { name: "Update Record", icon: faPenToSquare, href: "/update-record" },
   { name: "Find Record", icon: faSearch, href: "/searchperson" },
  
   // { name: "Find Person Record", icon: faClipboardList, href: "/find-person" },
-  { name: "Internet Report", icon: faGlobe, href: "/InternetReport" },
+ 
   { name: "Report Menu", icon: faFileLines, href: "/ReportMenu" },
   { name: "Cash Received", icon: faReceipt, href: "/debitNote" },
   { name: "Defaulter Lists", icon: faExclamationTriangle, href: "/defaulter-lists" },
+  { name: "Internet Entry", icon: faGlobe, href: "/Internet-entery-page" },
+   { name: "Internet Report", icon: faGlobe, href: "/InternetReport" },
    { name: "Login", icon: faRightToBracket, href: "/login" },
 
 ];
