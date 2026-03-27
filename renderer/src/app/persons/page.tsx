@@ -15,6 +15,8 @@ export default function PersonsPage() {
   const [amountPaid, setAmountPaid] = useState<number | ''>(''); // New state for amount paid
   const [loading, setLoading] = useState(true);
   const receiptRef = useRef<HTMLDivElement>(null);
+  const [editingPerson, setEditingPerson] = useState<any>(null);
+const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     const setupDB = async () => {
@@ -134,6 +136,91 @@ export default function PersonsPage() {
   }
 };
 
+//update person data 
+const startEditPerson = (person: any) => {
+  setEditingPerson(person);
+  setIsEditing(true);
+
+  setPersonName(person.name || "");
+  setPersonConnectionNumber(person.connectionNumber || "");
+  setPersonAddress(person.address || "");
+  setMonthlyFee(person.amount ?? "");
+  setAmountPaid(person.amountPaid ?? "");
+};
+
+//cancel function form 
+const resetForm = () => {
+  setEditingPerson(null);
+  setIsEditing(false);
+  setPersonName("");
+  setPersonConnectionNumber("");
+  setPersonAddress("");
+  setMonthlyFee("");
+  setAmountPaid("");
+};
+
+const cancelEdit = () => {
+  resetForm();
+};
+
+//update existing function 
+const updateExistingPerson = async () => {
+  if (!db || !editingPerson) return;
+
+  if (!selectedArea) {
+    alert("Please select an area for the person");
+    return;
+  }
+
+  if (!personName.trim()) {
+    alert("Please enter person name");
+    return;
+  }
+
+  if (!personConnectionNumber.trim()) {
+    alert("Please enter a connection number for the person");
+    return;
+  }
+
+  if (!personAddress.trim()) {
+    alert("Please enter person address");
+    return;
+  }
+
+  if (monthlyFee === "" || Number.isNaN(Number(monthlyFee))) {
+    alert("Please enter monthly fee");
+    return;
+  }
+
+  if (amountPaid === "" || Number.isNaN(Number(amountPaid))) {
+    alert("Please enter the amount paid");
+    return;
+  }
+
+  const newMonthlyFee = Number(monthlyFee);
+  const newAmountPaid = Number(amountPaid);
+  const newRemainingBalance = newMonthlyFee - newAmountPaid;
+
+  try {
+    await db.updatePerson(editingPerson, {
+      name: personName.trim(),
+      connectionNumber: personConnectionNumber.trim(),
+      address: personAddress.trim(),
+      amount: newMonthlyFee,
+      amountPaid: newAmountPaid,
+      remainingBalance: newRemainingBalance,
+      areaId: selectedArea,
+    });
+
+    const allPersons = await db.getPersonsByArea(selectedArea);
+    setPersons(allPersons);
+
+    resetForm();
+    alert("Person updated successfully");
+  } catch (err: any) {
+    alert(err?.message || "Failed to update person");
+  }
+};
   const deletePerson = async (person: any) => {
     if (!db) return;
     await db.deletePerson(person);
@@ -576,12 +663,20 @@ export default function PersonsPage() {
 
         {/* Buttons row */}
         <div className="flex gap-4">
-          <button
-            onClick={addPerson}
-            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-700 text-white rounded-lg hover:from-blue-700 hover:to-purple-800 transition-colors duration-200 font-medium"
-          >
-            Add Person
-          </button>
+         <button
+  onClick={isEditing ? updateExistingPerson : addPerson}
+  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-700 text-white rounded-lg hover:from-blue-700 hover:to-purple-800 transition-colors duration-200 font-medium"
+>
+  {isEditing ? "Update Person" : "Add Person"}
+</button>
+{isEditing && (
+  <button
+    onClick={cancelEdit}
+    className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors duration-200 font-medium"
+  >
+    Cancel
+  </button>
+)}
           
           <button
             onClick={printReceipt}
@@ -660,14 +755,21 @@ export default function PersonsPage() {
                           Active
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button 
-                          onClick={() => deletePerson(person)}
-                          className="text-red-600 hover:text-red-900 hover:bg-red-50 px-3 py-1 rounded-md transition-colors duration-200"
-                        >
-                          Delete
-                        </button>
-                      </td>
+                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex gap-2">
+  <button
+    onClick={() => startEditPerson(person)}
+    className="text-blue-600 hover:text-blue-900 hover:bg-blue-50 px-3 py-1 rounded-md transition-colors duration-200"
+  >
+    Edit
+  </button>
+
+  <button 
+    onClick={() => deletePerson(person)}
+    className="text-red-600 hover:text-red-900 hover:bg-red-50 px-3 py-1 rounded-md transition-colors duration-200"
+  >
+    Delete
+  </button>
+</td>
                     </tr>
                   ))}
                 </tbody>
