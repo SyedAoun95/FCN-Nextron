@@ -23,8 +23,8 @@ const menuItems = [
   { name: "Add Area", icon: faLocationDot, href: "/areas" },
   { name: "Add Connection", icon: faUserPlus, href: "/persons" },
   
-  { name: "Remove Person", icon: faUserMinus, href: "/remove" },
-  { name: "Update Record", icon: faPenToSquare, href: "/update-record" },
+  { name: "Delete Connection", icon: faUserMinus, href: "/remove" },
+  // { name: "Update Record", icon: faPenToSquare, href: "/update-record" },
   { name: "Find Record", icon: faSearch, href: "/searchperson" },
  
   // { name: "Find Person Record", icon: faClipboardList, href: "/find-person" },

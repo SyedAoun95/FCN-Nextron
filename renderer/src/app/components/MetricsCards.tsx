@@ -12,7 +12,7 @@ interface MetricCardProps extends Metric {}
 
 const MetricCard: React.FC<MetricCardProps> = ({
   title,
-  value = '$0.00',
+  value = 'Rs.0.00',
   change = '',
   trend = 'up',
   description = ''
@@ -24,7 +24,7 @@ const MetricCard: React.FC<MetricCardProps> = ({
           <p className="text-sm font-medium text-gray-600">{title}</p>
           <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
         </div>
-        <span className={`text-xs font-semibold px-2 py-1 rounded ${
+        <span className={`text-xs font-semibold px-2 py-1 rounded Rs.{
           trend === 'up' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
         }`}>
           {change}
@@ -39,14 +39,14 @@ const MetricsCards: React.FC<{ metrics?: Metric[] }> = ({ metrics }) => {
   const defaultMetrics: Metric[] = [
     {
       title: 'Monthly Revenue',
-      value: '$0.00',
+      value: '0.00',
       change: '',
       trend: 'up',
       description: 'Revenue collected this month'
     },
     {
       title: 'All-Time Revenue',
-      value: '$0.00',
+      value: 'Rs 0.00',
       change: '',
       trend: 'up',
       description: 'Total revenue to date'

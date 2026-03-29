@@ -24,8 +24,8 @@ const DashboardPage: React.FC = () => {
         const areasCount = Array.isArray(areas) ? areas.length : 0;
 
         const m = [
-          { title: 'Monthly Revenue', value: `$${Number(monthSum).toFixed(2)}`, change: '', trend: 'up', description: 'Revenue for current month' },
-          { title: 'All-Time Revenue', value: `$${Number(grand).toFixed(2)}`, change: '', trend: 'up', description: 'Cumulative revenue' },
+          { title: 'Monthly Revenue', value: `Rs.${Number(monthSum).toFixed(2)}`, change: '', trend: 'up', description: 'Revenue for current month' },
+          { title: 'All-Time Revenue', value: `Rs.${Number(grand).toFixed(2)}`, change: '', trend: 'up', description: 'Cumulative revenue' },
           { title: 'Active Areas', value: String(areasCount), change: '', trend: 'up', description: 'Number of areas' },
           { title: 'Active Connections', value: String(totalConn), change: '', trend: 'up', description: 'Number of person connections' },
         ];

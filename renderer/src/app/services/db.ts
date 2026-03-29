@@ -9,7 +9,7 @@ export const initDB = async () => {
 
   const localDB = new PouchDB("crud-database");
 const remoteDB = new PouchDB(
-  "http://admin:512141@192.168.1.108:5984/db_fcn"
+  "http://admin:512141@10.144.36.32:5984/db_fcn"
 );
 // const localDB = new PouchDB("crud-database");
 

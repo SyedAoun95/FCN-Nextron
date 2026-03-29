@@ -8,6 +8,8 @@ export default function PersonsPage() {
   const [areas, setAreas] = useState<any[]>([]);
   const [selectedArea, setSelectedArea] = useState("");
   const [persons, setPersons] = useState<any[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+
   const [personName, setPersonName] = useState("");
   const [personConnectionNumber, setPersonConnectionNumber] = useState("");
   const [personAddress, setPersonAddress] = useState("");
@@ -32,13 +34,32 @@ const [isEditing, setIsEditing] = useState(false);
     setupDB();
   }, []);
 
-  const loadPersons = async (areaId: string) => {
-    if (!db) return;
-    setSelectedArea(areaId);
-    const allPersons = await db.getPersonsByArea(areaId);
-    setPersons(allPersons);
-    console.log("New person added - check remainingBalance:", allPersons[allPersons.length - 1]);
-  };
+const loadPersons = async (areaId: string) => {
+  if (!db) return;
+  setSelectedArea(areaId);
+  setSearchTerm("");
+  const allPersons = await db.getPersonsByArea(areaId);
+  setPersons(allPersons);
+  console.log("New person added - check remainingBalance:", allPersons[allPersons.length - 1]);
+};  
+const filteredPersons = persons.filter((person) => {
+  const term = searchTerm.toLowerCase().trim();
+
+  if (!term) return true;
+
+  return (
+    person.name?.toLowerCase().includes(term) ||
+    person.connectionNumber?.toLowerCase().includes(term) ||
+    person.address?.toLowerCase().includes(term)
+  );
+});
+const handleSearch = () => {
+  // active search is already working from searchTerm
+  // this button is kept for user convenience
+};
+const handleClearSearch = () => {
+  setSearchTerm("");
+};
 
  const addPerson = async () => {
   if (!db) return;
@@ -688,19 +709,51 @@ const updateExistingPerson = async () => {
       </div>
 
       {/* Persons List Card - Only show when area is selected */}
-      {selectedArea && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-800">Persons in Selected Area</h2>
-            <p className="text-sm text-gray-500 mt-1">{persons.length} person(s) found</p>
-          </div>
+     {selectedArea && (
+  <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+   <div className="px-6 py-4 border-b border-gray-200">
+  <h2 className="text-xl font-semibold text-gray-800">Persons in Selected Area</h2>
+  <p className="text-sm text-gray-500 mt-1">
+    {filteredPersons.length} person(s) found
+  </p>
 
-          {persons.length === 0 ? (
-            <div className="p-8 text-center">
-              <div className="text-gray-400 text-lg mb-2">No persons found in this area</div>
-              <p className="text-gray-500">Add your first person using the form above</p>
-            </div>
-          ) : (
+  <div className="mt-4 flex flex-col md:flex-row gap-3">
+    <input
+      type="text"
+      value={searchTerm}
+      onChange={(e) => setSearchTerm(e.target.value)}
+      placeholder="Search by name, connection number, or address"
+      className="w-full md:w-96 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 placeholder-gray-500"
+    />
+
+    <button
+      onClick={handleSearch}
+      className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-700 text-white rounded-lg hover:from-blue-700 hover:to-purple-800 transition-colors duration-200 font-medium"
+    >
+      Search
+    </button>
+
+    <button
+      onClick={handleClearSearch}
+      className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors duration-200 font-medium"
+    >
+      Clear
+    </button>
+  </div>
+</div>
+
+     {persons.length === 0 ? (
+
+  <div className="p-8 text-center">
+    <div className="text-gray-400 text-lg mb-2">No persons found in this area</div>
+    <p className="text-gray-500">Add your first person using the form above</p>
+  </div>
+) : filteredPersons.length === 0 ? (
+  <div className="p-8 text-center">
+    <div className="text-gray-400 text-lg mb-2">No matching person found</div>
+    <p className="text-gray-500">Try another name, connection number, or address</p>
+  </div>
+) : (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -729,7 +782,7 @@ const updateExistingPerson = async () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {persons.map((person) => (
+                {filteredPersons.map((person) => (
                     <tr key={person._id} className="hover:bg-gray-50 transition-colors duration-150">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">{person.connectionNumber ?? '-'}</div>

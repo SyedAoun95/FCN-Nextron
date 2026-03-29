@@ -23,7 +23,7 @@ export default function CashReceivedPage() {
 	const [areaSuggestions, setAreaSuggestions] = useState<any[]>([]);
 
 	// Computed rows for display in table (one per person for selected month)
-const [displayRows, setDisplayRows] = useState<any[]>([]);
+// const [displayRows, setDisplayRows] = useState<any[]>([]);
 
 // Helper to get month string from date (YYYY-MM)
 const getMonthString = (date: Date) => date.toISOString().slice(0, 7);
@@ -37,64 +37,64 @@ const getPreviousMonth = (month: string) => {
 };
 
 // Compute display rows when area or month changes
-useEffect(() => {
-  if (!selectedArea || personsInArea.length === 0) {
-    setDisplayRows([]);
-    return;
-  }
+// useEffect(() => {
+//   if (!selectedArea || personsInArea.length === 0) {
+//     setDisplayRows([]);
+//     return;
+//   }
 
-  const rows = personsInArea.map((person) => {
-    const monthlyFee = Number(person.amount || 0);
-    const personRecords = records.filter((r: any) => r.personId === person._id);
+//   const rows = personsInArea.map((person) => {
+//     const monthlyFee = Number(person.amount || 0);
+//     const personRecords = records.filter((r: any) => r.personId === person._id);
 
-    const startMonth = getMonthString(new Date(person.createdAt || new Date()));
+//     const startMonth = getMonthString(new Date(person.createdAt || new Date()));
 
-    // Decide last month to calculate till
-    let endMonth: string;
-    if (selectedMonth) {
-      endMonth = selectedMonth;
-    } else {
-      const today = new Date();
-      const currentMonthStr = getMonthString(today);
-      endMonth = getPreviousMonth(currentMonthStr);
-    }
+//     // Decide last month to calculate till
+//     let endMonth: string;
+//     if (selectedMonth) {
+//       endMonth = selectedMonth;
+//     } else {
+//       const today = new Date();
+//       const currentMonthStr = getMonthString(today);
+//       endMonth = getPreviousMonth(currentMonthStr);
+//     }
 
-    const totalMonths = calculateMonthsBetween(startMonth, endMonth);
-    const totalExpected = monthlyFee * totalMonths;
+//     const totalMonths = calculateMonthsBetween(startMonth, endMonth);
+//     const totalExpected = monthlyFee * totalMonths;
 
-    const totalPaid = personRecords
-      .filter((r: any) => {
-        const rMonth = r.month || getMonthString(new Date(r.createdAt));
-        return rMonth <= endMonth;
-      })
-      .reduce((sum: number, r: any) => sum + Number(r.amount || 0), 0);
+//     const totalPaid = personRecords
+//       .filter((r: any) => {
+//         const rMonth = r.month || getMonthString(new Date(r.createdAt));
+//         return rMonth <= endMonth;
+//       })
+//       .reduce((sum: number, r: any) => sum + Number(r.amount || 0), 0);
 
-    const pending = Math.max(0, totalExpected - totalPaid);
+//     const pending = Math.max(0, totalExpected - totalPaid);
 
-    // amount paid ONLY in selected month
-    let paidThisMonth = 0;
-    if (selectedMonth) {
-      paidThisMonth = personRecords
-        .filter((r: any) => r.month === selectedMonth)
-        .reduce((sum: number, r: any) => sum + Number(r.amount || 0), 0);
-    }
+//     // amount paid ONLY in selected month
+//     let paidThisMonth = 0;
+//     if (selectedMonth) {
+//       paidThisMonth = personRecords
+//         .filter((r: any) => r.month === selectedMonth)
+//         .reduce((sum: number, r: any) => sum + Number(r.amount || 0), 0);
+//     }
 
-    return {
-      _id: person._id + "_computed_" + (selectedMonth || "all"),
-      personId: person._id,
-      personName: person.name,
-      connectionNumber: person.connectionNumber || "-",
-      personAddress: person.address || "-",
-      personMonthlyFee: monthlyFee,
-      month: selectedMonth || "Up to now",
-      amount: paidThisMonth,
-      remainingAfterPayment: pending,
-      isComputed: paidThisMonth === 0,
-    };
-  });
+//     return {
+//       _id: person._id + "_computed_" + (selectedMonth || "all"),
+//       personId: person._id,
+//       personName: person.name,
+//       connectionNumber: person.connectionNumber || "-",
+//       personAddress: person.address || "-",
+//       personMonthlyFee: monthlyFee,
+//       month: selectedMonth || "Up to now",
+//       amount: paidThisMonth,
+//       remainingAfterPayment: pending,
+//       isComputed: paidThisMonth === 0,
+//     };
+//   });
 
-  setDisplayRows(rows);
-}, [selectedArea, selectedMonth, personsInArea, records]);
+//   setDisplayRows(rows);
+// }, [selectedArea, selectedMonth, personsInArea, records]);
 
 
 // Helper function to calculate number of months between two YYYY-MM strings
@@ -348,6 +348,19 @@ const addRecord = async () => {
   ? records.filter((r: any) => r.month === selectedMonth)
   : records;
 
+const transactionRows = records
+  .filter((r: any) => {
+    const monthMatch = selectedMonth ? r.month === selectedMonth : true;
+
+    const personMatch = selectedPersonId
+      ? r.personId === selectedPersonId
+      : true;
+
+    return monthMatch && personMatch;
+  })
+  .sort((a: any, b: any) => {
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
 	// const printRecords = () => {
 	// 	const printWindow = window.open('', '', 'width=1200,height=600');
 	// 	if (!printWindow) return;
@@ -538,9 +551,11 @@ const addRecord = async () => {
 									}
 									const qLower = q.toLowerCase();
 									const filtered = personsInArea.filter((p) => {
-										const conn = String(p.connectionNumber ?? p.number ?? p.name ?? "");
-										return conn.toLowerCase().startsWith(qLower);
-									});
+  const conn = String(p.connectionNumber ?? "").toLowerCase();
+  const name = String(p.name ?? "").toLowerCase();
+
+  return conn.includes(qLower) || name.includes(qLower);
+});
 									setConnectionSuggestions(filtered.slice(0, 20));
 								}}
 								placeholder="Type connection # (e.g. 1)"
@@ -592,7 +607,7 @@ const addRecord = async () => {
 						<label className="block text-sm font-medium text-gray-700 mb-2">Monthly Fee</label>
 						<input 
 							type="text" 
-							value={selectedPersonFee === "" ? "" : `$${Number(selectedPersonFee).toFixed(2)}`} 
+							value={selectedPersonFee === "" ? "" : `${Number(selectedPersonFee).toFixed(2)}`} 
 							readOnly 
 							className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-black" 
 						/>
@@ -649,14 +664,14 @@ const addRecord = async () => {
 								<div className="text-xs text-gray-600">Pending for {selectedMonth}</div>
 								<div className="text-lg font-semibold text-red-600">${Number(selectedPendingAmount).toFixed(2)}</div>
 								<div className="text-sm text-gray-600 mt-1">
-									Expected per month: ${Number(expectedPerMonth).toFixed(2)} — Paid: ${Number(paidInSelectedMonth).toFixed(2)}
+									Expected per month: Rs{Number(expectedPerMonth).toFixed(2)} — Paid: Rs{Number(paidInSelectedMonth).toFixed(2)}
 								</div>
 							</div>
 						)}
 
 						<div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
 							<div className="text-xs text-gray-600">All-time balance</div>
-							<div className="text-lg font-semibold text-black">${Number(allTimeBalance).toFixed(2)}</div>
+							<div className="text-lg font-semibold text-black">Rs{Number(allTimeBalance).toFixed(2)}</div>
 						</div>
 					</div>
 				)}
@@ -672,7 +687,7 @@ const addRecord = async () => {
       )}
     </h2>
     
-    {displayRows.length > 0 && (
+   {transactionRows.length > 0 && (
       <button
         onClick={printRecords}
         className="px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition"
@@ -682,9 +697,9 @@ const addRecord = async () => {
     )}
   </div>
 
-  {displayRows.length === 0 ? (
-    <div className="text-sm text-gray-500">No records for selected area</div>
-  ) : (
+ {transactionRows.length === 0 ? (
+  <div className="text-sm text-gray-500">No matching transactions found</div>
+) : (
     <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
@@ -700,7 +715,7 @@ const addRecord = async () => {
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {displayRows.map((row: any) => (
+          {transactionRows.map((row: any) => (
             <tr key={row._id} className="hover:bg-gray-50">
               <td className="px-6 py-3 text-sm text-gray-900">{row.personName}</td>
               <td className="px-6 py-3 text-sm text-gray-900">{row.connectionNumber || '-'}</td>
@@ -715,16 +730,14 @@ const addRecord = async () => {
               <td className="px-6 py-3 text-sm text-red-600 font-semibold">
                 Rs.{Number(row.remainingAfterPayment).toFixed(2)}
               </td>
-              <td className="px-6 py-3 text-sm">
-                {!row.isComputed && (
-                  <button
-                    onClick={() => deleteRecord(row)}
-                    className="text-red-600 hover:text-red-800 hover:bg-red-50 px-3 py-1 rounded transition-colors duration-200"
-                  >
-                    Delete
-                  </button>
-                )}
-              </td>
+             <td className="px-6 py-3 text-sm">
+  <button
+    onClick={() => deleteRecord(row)}
+    className="text-red-600 hover:text-red-800 hover:bg-red-50 px-3 py-1 rounded transition-colors duration-200"
+  >
+    Delete
+  </button>
+</td>
             </tr>
           ))}
         </tbody>
