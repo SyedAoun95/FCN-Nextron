@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { initDB } from "../services/db"
 
 export default function AreasPage() {
@@ -8,6 +8,7 @@ export default function AreasPage() {
   const [areas, setAreas] = useState<any[]>([]);
   const [areaName, setAreaName] = useState("");
   const [loading, setLoading] = useState(true);
+  const areaInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const setupDB = async () => {
@@ -67,9 +68,16 @@ export default function AreasPage() {
         <h2 className="text-xl font-semibold text-gray-800 mb-4">Add New Area</h2>
         <div className="flex gap-4">
           <input
+            ref={areaInputRef}
             type="text"
             value={areaName}
             onChange={(e) => setAreaName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addArea();
+              }
+            }}
             placeholder="Enter area name..."
             className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 placeholder-gray-500"
           />

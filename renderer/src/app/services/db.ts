@@ -168,7 +168,23 @@ const remoteDB = new PouchDB(
         doc &&
         !doc._deleted &&
         doc.type === "person" &&
-        doc.areaId === areaId
+        doc.areaId === areaId &&
+        doc.status === "active"
+    );
+};
+
+  const getDefaulterPersons = async (areaId: string) => {
+  const res = await localDB.allDocs({ include_docs: true });
+
+  return res.rows
+    .map((row: any) => row.doc)
+    .filter(
+      (doc: any) =>
+        doc &&
+        !doc._deleted &&
+        doc.type === "person" &&
+        doc.areaId === areaId &&
+        doc.status === "defaulter"
     );
 };
   const updatePerson = async (person: any, updates: any) => {
@@ -178,30 +194,54 @@ const remoteDB = new PouchDB(
     return localDB.put(updatedDoc);
   };
 
+  const moveTodefalterList = async (person: any) => {
+  try {
+    // Move person to defaulter list by marking status as 'defaulter'
+    const updatedPerson = {
+      ...person,
+      status: "defaulter",
+      movedToDefaulterAt: new Date().toISOString(),
+    };
+
+    await localDB.put(updatedPerson);
+    console.log(`Person ${person._id} moved to defaulter list`);
+
+    return { success: true, movedToDefaulter: true };
+  } catch (err: any) {
+    console.error("Error moving person to defaulter list:", err);
+    throw new Error("Failed to move person to defaulter list: " + (err?.message || "Unknown error"));
+  }
+};
+
   const deletePerson = async (person: any) => {
   try {
-    // Step 1: Delete the person document itself
-    await localDB.remove(person);
+    // Check if person is already a defaulter - if yes, completely delete
+    if (person.status === "defaulter") {
+      // Step 1: Delete the person document itself
+      await localDB.remove(person);
 
-    // Step 2: Find all debit records linked to this person
-    const debitsResult = await localDB.find({
-      selector: {
-        type: "debit",
-        personId: person._id
+      // Step 2: Find all debit records linked to this person
+      const debitsResult = await localDB.find({
+        selector: {
+          type: "debit",
+          personId: person._id
+        }
+      });
+
+      const debits = debitsResult.docs || [];
+
+      // Step 3: Delete each debit record one by one
+      for (const debit of debits) {
+        await localDB.remove(debit);
       }
-    });
 
-    const debits = debitsResult.docs || [];
+      console.log(`Deleted person ${person._id} and ${debits.length} related debit records`);
 
-    // Step 3: Delete each debit record one by one
-    for (const debit of debits) {
-      await localDB.remove(debit);
+      return { success: true, deletedDebits: debits.length, fullyDeleted: true };
+    } else {
+      // First deletion - move to defaulter list instead
+      return await moveTodefalterList(person);
     }
-
-    console.log(`Deleted person ${person._id} and ${debits.length} related debit records`);
-
-    // Optional: return useful info (you can use it in the UI if you want)
-    return { success: true, deletedDebits: debits.length };
   } catch (err: any) {
     console.error("Error during person deletion:", err);
     throw new Error("Failed to delete person: " + (err?.message || "Unknown error"));
@@ -237,7 +277,15 @@ const remoteDB = new PouchDB(
 
   return res.rows
     .map((row: any) => row.doc)
-    .filter((doc: any) => doc && !doc._deleted && doc.type === "person");
+    .filter((doc: any) => doc && !doc._deleted && doc.type === "person" && doc.status === "active");
+};
+
+  const getAllDefaulters = async () => {
+  const res = await localDB.allDocs({ include_docs: true });
+
+  return res.rows
+    .map((row: any) => row.doc)
+    .filter((doc: any) => doc && !doc._deleted && doc.type === "person" && doc.status === "defaulter");
 };
   // const grandTotalRevenue = async () => {
   //   await localDB.createIndex({ index: { fields: ['type', 'amount'] } });
@@ -499,7 +547,11 @@ const monthlyRevenue = async (year: number, month: number) => {
     deleteArea,
     createPerson,
     getPersonsByArea,
+    getDefaulterPersons,
     updatePerson,
+    deletePerson,
+    moveTodefalterList,
+    getAllDefaulters,
     deletePerson,
 
     totalConnections,

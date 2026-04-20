@@ -31,24 +31,24 @@ export default function RemovePersonPage() {
     setPersons(allPersons);
   };
 
- const deletePerson = async (person: any) => {
-  if (!db) return;
+  const deletePerson = async (person: any) => {
+    if (!db) return;
 
-  if (!confirm(`Are you sure you want to delete ${person.name} (Conn #${person.connectionNumber || 'unknown'})?\nThis will also remove all their payment history.`)) {
-    return;
-  }
+    if (!confirm(`Are you sure you want to delete ${person.name} (Conn #${person.connectionNumber || 'unknown'})?\nThis will also remove all their payment history.`)) {
+      return;
+    }
 
-  try {
-    const result = await db.deletePerson(person);  // Now uses the updated function
-    const updatedPersons = await db.getPersonsByArea(selectedArea);
-    setPersons(updatedPersons);
+    try {
+      const result = await db.deletePerson(person);
+      const updatedPersons = await db.getPersonsByArea(selectedArea);
+      setPersons(updatedPersons);
 
-    alert(`Person deleted successfully. (${result.deletedDebits || 0} payment records removed)`);
-  } catch (err: any) {
-    console.error("Delete failed:", err);
-    alert("Failed to delete person: " + (err?.message || "Unknown error"));
-  }
-};
+      alert(`Person deleted successfully. (${result.deletedDebits || 0} payment records removed)`);
+    } catch (err: any) {
+      console.error("Delete failed:", err);
+      alert("Failed to delete person: " + (err?.message || "Unknown error"));
+    }
+  };
 
   const printPersonsList = () => {
     const printWindow = window.open('', '_blank', 'width=800,height=600');
@@ -235,6 +235,66 @@ export default function RemovePersonPage() {
           )}
         </div>
       )}
+
+      {/* Print Button for Persons List */}
+      {selectedArea && persons.length > 0 && (
+        <div className="mt-4">
+          <button
+            onClick={printPersonsList}
+            className="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-700 text-white rounded-lg hover:from-green-700 hover:to-emerald-800 transition-colors duration-200 font-medium"
+          >
+            Print List
+          </button>
+        </div>
+      )}
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Persons</p>
+              <p className="text-2xl font-bold text-gray-900 mt-2">{persons.length}</p>
+            </div>
+            <span className="text-xs font-semibold px-2 py-1 rounded bg-blue-100 text-blue-800">
+              +0%
+            </span>
+          </div>
+          <p className="text-xs text-gray-500 mt-4">All persons in selected area</p>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Active Areas</p>
+              <p className="text-2xl font-bold text-gray-900 mt-2">{areas.length}</p>
+            </div>
+            <span className="text-xs font-semibold px-2 py-1 rounded bg-green-100 text-green-800">
+              {areas.length > 0 ? 'Ready' : 'None'}
+            </span>
+          </div>
+          <p className="text-xs text-gray-500 mt-4">Total areas available</p>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Selected Area</p>
+              <p className="text-2xl font-bold text-gray-900 mt-2">
+                {selectedArea ? areas.find(a => a._id === selectedArea)?.name : 'None'}
+              </p>
+            </div>
+            <span className={`text-xs font-semibold px-2 py-1 rounded ${
+              selectedArea ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'
+            }`}>
+              {selectedArea ? '✓' : '✗'}
+            </span>
+          </div>
+          <p className="text-xs text-gray-500 mt-4">
+            {selectedArea ? 'Area selected' : 'No area selected'}
+          </p>
+        </div>
+      </div>
 
       {/* Print Button for Persons List */}
       {selectedArea && persons.length > 0 && (

@@ -18,7 +18,14 @@ export default function PersonsPage() {
   const [loading, setLoading] = useState(true);
   const receiptRef = useRef<HTMLDivElement>(null);
   const [editingPerson, setEditingPerson] = useState<any>(null);
-const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+
+  // Refs for form inputs - for keyboard navigation
+  const connectionRef = useRef<HTMLInputElement>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const addressRef = useRef<HTMLInputElement>(null);
+  const feeRef = useRef<HTMLInputElement>(null);
+  const amountPaidRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const setupDB = async () => {
@@ -242,11 +249,41 @@ const updateExistingPerson = async () => {
     alert(err?.message || "Failed to update person");
   }
 };
+
+  // Keyboard navigation handler for Tab key - moves focus between inputs
+  const handleKeyDown = (e: React.KeyboardEvent, nextRef: React.RefObject<HTMLInputElement> | null) => {
+    if ((e.key === "Tab" || e.key === "Enter") && !e.shiftKey && nextRef) {
+      e.preventDefault();
+      nextRef.current?.focus();
+    } else if (e.key === "Tab" && e.shiftKey) {
+      // Allow Shift+Tab to go back (browser default)
+      return;
+    }
+  };
+
   const deletePerson = async (person: any) => {
     if (!db) return;
     await db.deletePerson(person);
     const allPersons = await db.getPersonsByArea(selectedArea);
     setPersons(allPersons);
+  };
+
+  const moveToDefaulterList = async (person: any) => {
+    if (!db) return;
+
+    if (!confirm(`Move ${person.name} (Conn #${person.connectionNumber || 'unknown'}) to the defaulter list?`)) {
+      return;
+    }
+
+    try {
+      await db.moveTodefalterList(person);
+      const allPersons = await db.getPersonsByArea(selectedArea);
+      setPersons(allPersons);
+      alert("Person moved to defaulter list successfully.");
+    } catch (err: any) {
+      console.error("Move failed:", err);
+      alert("Failed to move person: " + (err?.message || "Unknown error"));
+    }
   };
 
  const printReceipt = () => {
@@ -626,9 +663,11 @@ const updateExistingPerson = async () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Person Connection #</label>
             <input
+              ref={connectionRef}
               type="text"
               value={personConnectionNumber}
               onChange={(e) => setPersonConnectionNumber(e.target.value)}
+              onKeyDown={(e) => handleKeyDown(e, nameRef)}
               placeholder="Enter connection number"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 placeholder-gray-500"
             />
@@ -637,9 +676,11 @@ const updateExistingPerson = async () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Person Name</label>
             <input
+              ref={nameRef}
               type="text"
               value={personName}
               onChange={(e) => setPersonName(e.target.value)}
+              onKeyDown={(e) => handleKeyDown(e, addressRef)}
               placeholder="Enter person name..."
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 placeholder-gray-500"
             />
@@ -651,9 +692,11 @@ const updateExistingPerson = async () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
             <input
+              ref={addressRef}
               type="text"
               value={personAddress}
               onChange={(e) => setPersonAddress(e.target.value)}
+              onKeyDown={(e) => handleKeyDown(e, feeRef)}
               placeholder="Enter address..."
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 placeholder-gray-500"
             />
@@ -662,9 +705,11 @@ const updateExistingPerson = async () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Monthly Fee</label>
             <input
+              ref={feeRef}
               type="number"
               value={monthlyFee === '' ? '' : monthlyFee}
               onChange={(e) => setMonthlyFee(e.target.value === '' ? '' : Number(e.target.value))}
+              onKeyDown={(e) => handleKeyDown(e, amountPaidRef)}
               placeholder="Enter monthly fee"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 placeholder-gray-500"
             />
@@ -673,9 +718,16 @@ const updateExistingPerson = async () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Amount Paid</label>
             <input
+              ref={amountPaidRef}
               type="number"
               value={amountPaid === '' ? '' : amountPaid}
               onChange={(e) => setAmountPaid(e.target.value === '' ? '' : Number(e.target.value))}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  isEditing ? updateExistingPerson() : addPerson();
+                }
+              }}
               placeholder="Enter amount paid"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 placeholder-gray-500"
             />
@@ -814,6 +866,13 @@ const updateExistingPerson = async () => {
     className="text-blue-600 hover:text-blue-900 hover:bg-blue-50 px-3 py-1 rounded-md transition-colors duration-200"
   >
     Edit
+  </button>
+
+  <button 
+    onClick={() => moveToDefaulterList(person)}
+    className="text-orange-600 hover:text-orange-900 hover:bg-orange-50 px-3 py-1 rounded-md transition-colors duration-200"
+  >
+    Move to Defaulter
   </button>
 
   <button 
