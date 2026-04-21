@@ -13,12 +13,21 @@ export default function PersonsPage() {
   const [personName, setPersonName] = useState("");
   const [personConnectionNumber, setPersonConnectionNumber] = useState("");
   const [personAddress, setPersonAddress] = useState("");
+  const [personReceiptNo, setPersonReceiptNo] = useState("");
   const [monthlyFee, setMonthlyFee] = useState<number | ''>('');
-  const [amountPaid, setAmountPaid] = useState<number | ''>(''); // New state for amount paid
+  const [amountPaid, setAmountPaid] = useState<number | ''>('');
   const [loading, setLoading] = useState(true);
   const receiptRef = useRef<HTMLDivElement>(null);
   const [editingPerson, setEditingPerson] = useState<any>(null);
-const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+
+  // Refs for form inputs - for keyboard navigation
+  const connectionRef = useRef<HTMLInputElement>(null);
+  const receiptNoRef = useRef<HTMLInputElement>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const addressRef = useRef<HTMLInputElement>(null);
+  const feeRef = useRef<HTMLInputElement>(null);
+  const amountPaidRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const setupDB = async () => {
@@ -80,6 +89,11 @@ const handleClearSearch = () => {
     return;
   }
 
+  if (!personReceiptNo.trim()) {
+    alert('Please enter a receipt number for the person');
+    return;
+  }
+
   if (!personAddress.trim()) {
     alert('Please enter person address');
     return;
@@ -99,13 +113,14 @@ const handleClearSearch = () => {
 
   try {
     await db.createPerson(
-      personName, 
-      areaId, 
-      personConnectionNumber.trim(), 
-      Number(monthlyFee), 
+      personName,
+      areaId,
+      personConnectionNumber.trim(),
+      Number(monthlyFee),
       personAddress.trim(),
       Number(amountPaid),
-      remainingBalance
+      remainingBalance,
+      personReceiptNo.trim()
     );
     
     const allPersons = await db.getPersonsByArea(areaId);
@@ -128,6 +143,7 @@ const handleClearSearch = () => {
           personAddress: personAddress.trim(),
           personMonthlyFee: Number(monthlyFee),
           connectionNumber: personConnectionNumber.trim(),
+          receiptNo: personReceiptNo.trim(),
           month: currentMonth,
           amount: Number(amountPaid),
           expectedAmount: Number(monthlyFee),
@@ -151,6 +167,7 @@ const handleClearSearch = () => {
     setMonthlyFee('');
     setPersonConnectionNumber('');
     setPersonAddress('');
+    setPersonReceiptNo('');
     setAmountPaid('');
   } catch (err: any) {
     alert(err?.message || 'Failed to add person');
@@ -164,6 +181,7 @@ const startEditPerson = (person: any) => {
 
   setPersonName(person.name || "");
   setPersonConnectionNumber(person.connectionNumber || "");
+  setPersonReceiptNo(person.receiptNo || "");
   setPersonAddress(person.address || "");
   setMonthlyFee(person.amount ?? "");
   setAmountPaid(person.amountPaid ?? "");
@@ -175,6 +193,7 @@ const resetForm = () => {
   setIsEditing(false);
   setPersonName("");
   setPersonConnectionNumber("");
+  setPersonReceiptNo("");
   setPersonAddress("");
   setMonthlyFee("");
   setAmountPaid("");
@@ -203,6 +222,11 @@ const updateExistingPerson = async () => {
     return;
   }
 
+  if (!personReceiptNo.trim()) {
+    alert("Please enter a receipt number for the person");
+    return;
+  }
+
   if (!personAddress.trim()) {
     alert("Please enter person address");
     return;
@@ -226,6 +250,7 @@ const updateExistingPerson = async () => {
     await db.updatePerson(editingPerson, {
       name: personName.trim(),
       connectionNumber: personConnectionNumber.trim(),
+      receiptNo: personReceiptNo.trim(),
       address: personAddress.trim(),
       amount: newMonthlyFee,
       amountPaid: newAmountPaid,
@@ -242,6 +267,18 @@ const updateExistingPerson = async () => {
     alert(err?.message || "Failed to update person");
   }
 };
+
+  // Keyboard navigation handler for Tab key - moves focus between inputs
+  const handleKeyDown = (e: React.KeyboardEvent, nextRef: React.RefObject<HTMLInputElement> | null) => {
+    if ((e.key === "Tab" || e.key === "Enter") && !e.shiftKey && nextRef) {
+      e.preventDefault();
+      nextRef.current?.focus();
+    } else if (e.key === "Tab" && e.shiftKey) {
+      // Allow Shift+Tab to go back (browser default)
+      return;
+    }
+  };
+
   const deletePerson = async (person: any) => {
     if (!db) return;
     await db.deletePerson(person);
@@ -249,8 +286,41 @@ const updateExistingPerson = async () => {
     setPersons(allPersons);
   };
 
+  const disconnectPerson = async (person: any) => {
+    if (!db) return;
+    if (!confirm(`Disconnect ${person.name} (Conn #${person.connectionNumber || 'unknown'})? They will be moved to the Disconnection List.`)) {
+      return;
+    }
+    try {
+      await db.moveToDisconnected(person);
+      const allPersons = await db.getPersonsByArea(selectedArea);
+      setPersons(allPersons);
+      alert("Connection disconnected successfully.");
+    } catch (err: any) {
+      alert("Failed to disconnect: " + (err?.message || "Unknown error"));
+    }
+  };
+
+  const moveToDefaulterList = async (person: any) => {
+    if (!db) return;
+
+    if (!confirm(`Move ${person.name} (Conn #${person.connectionNumber || 'unknown'}) to the defaulter list?`)) {
+      return;
+    }
+
+    try {
+      await db.moveTodefalterList(person);
+      const allPersons = await db.getPersonsByArea(selectedArea);
+      setPersons(allPersons);
+      alert("Person moved to defaulter list successfully.");
+    } catch (err: any) {
+      console.error("Move failed:", err);
+      alert("Failed to move person: " + (err?.message || "Unknown error"));
+    }
+  };
+
  const printReceipt = () => {
-  if (!personName.trim() || !personConnectionNumber.trim() || !personAddress.trim() || monthlyFee === '') {
+  if (!personName.trim() || !personConnectionNumber.trim() || !personReceiptNo.trim() || !personAddress.trim() || monthlyFee === '') {
     alert('Please fill all person details before printing receipt');
     return;
   }
@@ -424,7 +494,7 @@ const updateExistingPerson = async () => {
        <div class="receipt-details">
   <div class="detail-row">
     <span class="label">Receipt No:</span>
-    <span class="value">${personConnectionNumber}-${Date.now().toString().slice(-6)}</span>
+    <span class="value">${personReceiptNo}</span>
   </div>
   <div class="detail-row">
     <span class="label">Connection #:</span>
@@ -543,6 +613,7 @@ const updateExistingPerson = async () => {
         <table>
           <thead>
             <tr>
+              <th>Receipt No</th>
               <th>Conn #</th>
               <th>Person Name</th>
               <th>Address</th>
@@ -554,10 +625,11 @@ const updateExistingPerson = async () => {
           <tbody>
             ${persons.map(person => `
               <tr>
+                <td>${person.receiptNo ?? '-'}</td>
                 <td>${person.connectionNumber ?? '-'}</td>
                 <td>${person.name}</td>
                 <td>${person.address && person.address !== '-' ? person.address : '-'}</td>
-                <td>Rs.${person.amount !== undefined ? Number(person.amount).toFixed(2) : '0.00'}</td>  
+                <td>Rs.${person.amount !== undefined ? Number(person.amount).toFixed(2) : '0.00'}</td>
 <td style="color: ${Number(person.remainingBalance || 0) > 0 ? '#dc2626' : '#6b7280'}; font-weight: bold;">
   Rs.${Number(person.remainingBalance || 0).toFixed(2)}
 </td>
@@ -621,15 +693,30 @@ const updateExistingPerson = async () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
         <h2 className="text-xl font-semibold text-gray-800 mb-6">Add New Person</h2>
         
-        {/* First row: Connection # and Person Name */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        {/* First row: Connection #, Receipt No, and Person Name */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Person Connection #</label>
             <input
+              ref={connectionRef}
               type="text"
               value={personConnectionNumber}
               onChange={(e) => setPersonConnectionNumber(e.target.value)}
+              onKeyDown={(e) => handleKeyDown(e, receiptNoRef)}
               placeholder="Enter connection number"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 placeholder-gray-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Receipt No <span className="text-red-500">*</span></label>
+            <input
+              ref={receiptNoRef}
+              type="text"
+              value={personReceiptNo}
+              onChange={(e) => setPersonReceiptNo(e.target.value)}
+              onKeyDown={(e) => handleKeyDown(e, nameRef)}
+              placeholder="Enter receipt number"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 placeholder-gray-500"
             />
           </div>
@@ -637,9 +724,11 @@ const updateExistingPerson = async () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Person Name</label>
             <input
+              ref={nameRef}
               type="text"
               value={personName}
               onChange={(e) => setPersonName(e.target.value)}
+              onKeyDown={(e) => handleKeyDown(e, addressRef)}
               placeholder="Enter person name..."
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 placeholder-gray-500"
             />
@@ -651,9 +740,11 @@ const updateExistingPerson = async () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
             <input
+              ref={addressRef}
               type="text"
               value={personAddress}
               onChange={(e) => setPersonAddress(e.target.value)}
+              onKeyDown={(e) => handleKeyDown(e, feeRef)}
               placeholder="Enter address..."
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 placeholder-gray-500"
             />
@@ -662,9 +753,11 @@ const updateExistingPerson = async () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Monthly Fee</label>
             <input
+              ref={feeRef}
               type="number"
               value={monthlyFee === '' ? '' : monthlyFee}
               onChange={(e) => setMonthlyFee(e.target.value === '' ? '' : Number(e.target.value))}
+              onKeyDown={(e) => handleKeyDown(e, amountPaidRef)}
               placeholder="Enter monthly fee"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 placeholder-gray-500"
             />
@@ -673,9 +766,16 @@ const updateExistingPerson = async () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Amount Paid</label>
             <input
+              ref={amountPaidRef}
               type="number"
               value={amountPaid === '' ? '' : amountPaid}
               onChange={(e) => setAmountPaid(e.target.value === '' ? '' : Number(e.target.value))}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  isEditing ? updateExistingPerson() : addPerson();
+                }
+              }}
               placeholder="Enter amount paid"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 placeholder-gray-500"
             />
@@ -759,6 +859,9 @@ const updateExistingPerson = async () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Receipt No
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Conn #
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -785,8 +888,11 @@ const updateExistingPerson = async () => {
                 {filteredPersons.map((person) => (
                     <tr key={person._id} className="hover:bg-gray-50 transition-colors duration-150">
                       <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-blue-700">{person.receiptNo ?? '-'}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">{person.connectionNumber ?? '-'}</div>
-                      </td> 
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">{person.name}</div>
                       </td>
@@ -808,7 +914,7 @@ const updateExistingPerson = async () => {
                           Active
                         </span>
                       </td>
-                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex gap-2">
+                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex gap-2 flex-wrap">
   <button
     onClick={() => startEditPerson(person)}
     className="text-blue-600 hover:text-blue-900 hover:bg-blue-50 px-3 py-1 rounded-md transition-colors duration-200"
@@ -816,7 +922,21 @@ const updateExistingPerson = async () => {
     Edit
   </button>
 
-  <button 
+  <button
+    onClick={() => disconnectPerson(person)}
+    className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-3 py-1 rounded-md transition-colors duration-200 border border-gray-300"
+  >
+    Disconnect
+  </button>
+
+  <button
+    onClick={() => moveToDefaulterList(person)}
+    className="text-orange-600 hover:text-orange-900 hover:bg-orange-50 px-3 py-1 rounded-md transition-colors duration-200"
+  >
+    Move to Defaulter
+  </button>
+
+  <button
     onClick={() => deletePerson(person)}
     className="text-red-600 hover:text-red-900 hover:bg-red-50 px-3 py-1 rounded-md transition-colors duration-200"
   >

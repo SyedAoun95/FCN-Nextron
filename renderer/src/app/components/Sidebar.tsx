@@ -3,7 +3,7 @@
 import React from 'react';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faGauge,          
+  faGauge,
   faLocationDot,
   faUserPlus,
   faUserMinus,
@@ -14,7 +14,10 @@ import {
   faFileLines,
   faRightToBracket,
   faGlobe,
-  faExclamationTriangle, // For defaulter lists
+  faExclamationTriangle,
+  faHistory,
+  faBan,
+  faCreditCard,
 } from "@fortawesome/free-solid-svg-icons";
 import Link from 'next/link';
 // icons for sidebar menu
@@ -31,6 +34,9 @@ const menuItems = [
  
   { name: "Report Menu", icon: faFileLines, href: "/ReportMenu" },
   { name: "Cash Received", icon: faReceipt, href: "/debitNote" },
+  { name: "Credit Note", icon: faCreditCard, href: "/credit-note" },
+  { name: "Person Records", icon: faHistory, href: "/person-records" },
+  { name: "Disconnection List", icon: faBan, href: "/disconnection-list" },
   { name: "Defaulter Lists", icon: faExclamationTriangle, href: "/defaulter-lists" },
   { name: "Internet Entry", icon: faGlobe, href: "/Internet-entery-page" },
    { name: "Internet Report", icon: faGlobe, href: "/InternetReport" },

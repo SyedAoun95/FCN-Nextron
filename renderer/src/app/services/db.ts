@@ -8,32 +8,21 @@ export const initDB = async () => {
   PouchDB.plugin(PouchDBFind);
 
   const localDB = new PouchDB("crud-database");
-const remoteDB = new PouchDB(
-  "http://admin:512141@10.144.36.32:5984/db_fcn"
-);
-// const localDB = new PouchDB("crud-database");
 
-// const savedServerUrl = localStorage.getItem("server_url");
-// const savedDbName = localStorage.getItem("server_db");
-// const savedUsername = localStorage.getItem("server_user");
-// const savedPassword = localStorage.getItem("server_pass");
-
-// if (!savedServerUrl || !savedDbName || !savedUsername || !savedPassword) {
-//   throw new Error("Server not configured. Please configure the server first.");
-// }
-
-// const remoteDB = new PouchDB(`${savedServerUrl}/${savedDbName}`, {
-//   auth: {
-//     username: savedUsername,
-//     password: savedPassword,
-//   },
-// });
+  const savedIp = localStorage.getItem("server_ip");
+  const remoteDB = savedIp
+    ? new PouchDB(`http://admin:512141@${savedIp}:5984/db_fcn`)
+    : null;
 
 
   // ---------------------------
   // LIVE TWO-WAY SYNC
   // ---------------------------
   const syncDB = () => {
+    if (!remoteDB) {
+      console.warn("No server IP configured — running in local-only mode");
+      return;
+    }
     localDB
       .sync(remoteDB, { live: true, retry: true })
       .on("change", (info) => console.log("DB Change:", info))
@@ -107,7 +96,8 @@ const remoteDB = new PouchDB(
   amount?: number,          // monthly fee
   address?: string,
   amountPaid: number = 0,   // new parameter with default 0
-  remainingBalance?: number // new parameter (optional, but we'll calculate it)
+  remainingBalance?: number, // new parameter (optional, but we'll calculate it)
+  receiptNo?: string
 ) => {
   if (!name.trim() || !areaId) throw new Error("Invalid input");
 
@@ -115,6 +105,11 @@ const remoteDB = new PouchDB(
 
   if (!conn) {
     throw new Error('Connection number is required for a person');
+  }
+
+  const receipt = receiptNo !== undefined ? String(receiptNo).trim() : "";
+  if (!receipt) {
+    throw new Error('Receipt number is required for a person');
   }
 
   // Ensure uniqueness of connectionNumber across persons
@@ -135,10 +130,11 @@ const remoteDB = new PouchDB(
     name: name.trim(),
     areaId,
     connectionNumber: conn,
+    receiptNo: receipt,
     amount: monthlyFeeNum,                    // monthly fee
     address: address?.trim() || '-',          // safe default
     amountPaid: paidNum,                      // initial payment
-    remainingBalance: Number(remainingBalance ?? calculatedRemaining),  // ← THIS IS THE FIX
+    remainingBalance: Number(remainingBalance ?? calculatedRemaining),
     status: 'active',
     createdAt: new Date().toISOString(),
   };
@@ -168,7 +164,23 @@ const remoteDB = new PouchDB(
         doc &&
         !doc._deleted &&
         doc.type === "person" &&
-        doc.areaId === areaId
+        doc.areaId === areaId &&
+        doc.status === "active"
+    );
+};
+
+  const getDefaulterPersons = async (areaId: string) => {
+  const res = await localDB.allDocs({ include_docs: true });
+
+  return res.rows
+    .map((row: any) => row.doc)
+    .filter(
+      (doc: any) =>
+        doc &&
+        !doc._deleted &&
+        doc.type === "person" &&
+        doc.areaId === areaId &&
+        doc.status === "defaulter"
     );
 };
   const updatePerson = async (person: any, updates: any) => {
@@ -178,30 +190,95 @@ const remoteDB = new PouchDB(
     return localDB.put(updatedDoc);
   };
 
+  const moveTodefalterList = async (person: any) => {
+  try {
+    // Move person to defaulter list by marking status as 'defaulter'
+    const updatedPerson = {
+      ...person,
+      status: "defaulter",
+      movedToDefaulterAt: new Date().toISOString(),
+    };
+
+    await localDB.put(updatedPerson);
+    console.log(`Person ${person._id} moved to defaulter list`);
+
+    return { success: true, movedToDefaulter: true };
+  } catch (err: any) {
+    console.error("Error moving person to defaulter list:", err);
+    throw new Error("Failed to move person to defaulter list: " + (err?.message || "Unknown error"));
+  }
+};
+
+  const moveToDisconnected = async (person: any) => {
+    const updatedPerson = {
+      ...person,
+      status: "disconnected",
+      disconnectedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    return localDB.put(updatedPerson);
+  };
+
+  const reconnectPerson = async (person: any) => {
+    const updatedPerson = {
+      ...person,
+      status: "active",
+      disconnectedAt: null,
+      updatedAt: new Date().toISOString(),
+    };
+    return localDB.put(updatedPerson);
+  };
+
+  const getDisconnectedPersons = async (areaId: string) => {
+    const res = await localDB.allDocs({ include_docs: true });
+    return res.rows
+      .map((row: any) => row.doc)
+      .filter(
+        (doc: any) =>
+          doc &&
+          !doc._deleted &&
+          doc.type === "person" &&
+          doc.areaId === areaId &&
+          doc.status === "disconnected"
+      );
+  };
+
+  const getAllDisconnected = async () => {
+    const res = await localDB.allDocs({ include_docs: true });
+    return res.rows
+      .map((row: any) => row.doc)
+      .filter((doc: any) => doc && !doc._deleted && doc.type === "person" && doc.status === "disconnected");
+  };
+
   const deletePerson = async (person: any) => {
   try {
-    // Step 1: Delete the person document itself
-    await localDB.remove(person);
+    // Check if person is already a defaulter - if yes, completely delete
+    if (person.status === "defaulter") {
+      // Step 1: Delete the person document itself
+      await localDB.remove(person);
 
-    // Step 2: Find all debit records linked to this person
-    const debitsResult = await localDB.find({
-      selector: {
-        type: "debit",
-        personId: person._id
+      // Step 2: Find all debit records linked to this person
+      const debitsResult = await localDB.find({
+        selector: {
+          type: "debit",
+          personId: person._id
+        }
+      });
+
+      const debits = debitsResult.docs || [];
+
+      // Step 3: Delete each debit record one by one
+      for (const debit of debits) {
+        await localDB.remove(debit);
       }
-    });
 
-    const debits = debitsResult.docs || [];
+      console.log(`Deleted person ${person._id} and ${debits.length} related debit records`);
 
-    // Step 3: Delete each debit record one by one
-    for (const debit of debits) {
-      await localDB.remove(debit);
+      return { success: true, deletedDebits: debits.length, fullyDeleted: true };
+    } else {
+      // First deletion - move to defaulter list instead
+      return await moveTodefalterList(person);
     }
-
-    console.log(`Deleted person ${person._id} and ${debits.length} related debit records`);
-
-    // Optional: return useful info (you can use it in the UI if you want)
-    return { success: true, deletedDebits: debits.length };
   } catch (err: any) {
     console.error("Error during person deletion:", err);
     throw new Error("Failed to delete person: " + (err?.message || "Unknown error"));
@@ -237,7 +314,15 @@ const remoteDB = new PouchDB(
 
   return res.rows
     .map((row: any) => row.doc)
-    .filter((doc: any) => doc && !doc._deleted && doc.type === "person");
+    .filter((doc: any) => doc && !doc._deleted && doc.type === "person" && doc.status === "active");
+};
+
+  const getAllDefaulters = async () => {
+  const res = await localDB.allDocs({ include_docs: true });
+
+  return res.rows
+    .map((row: any) => row.doc)
+    .filter((doc: any) => doc && !doc._deleted && doc.type === "person" && doc.status === "defaulter");
 };
   // const grandTotalRevenue = async () => {
   //   await localDB.createIndex({ index: { fields: ['type', 'amount'] } });
@@ -499,8 +584,15 @@ const monthlyRevenue = async (year: number, month: number) => {
     deleteArea,
     createPerson,
     getPersonsByArea,
+    getDefaulterPersons,
     updatePerson,
     deletePerson,
+    moveTodefalterList,
+    getAllDefaulters,
+    moveToDisconnected,
+    reconnectPerson,
+    getDisconnectedPersons,
+    getAllDisconnected,
 
     totalConnections,
     grandTotalRevenue,

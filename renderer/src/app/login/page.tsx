@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { initDB } from "../services/db";
 
 export default function LoginPage() {
@@ -14,26 +14,22 @@ export default function LoginPage() {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // test code start 
-const [showServerConfig, setShowServerConfig] = useState(false);
+  const [serverIp, setServerIp] = useState('');
+  const [configSaved, setConfigSaved] = useState(false);
+  const [showServerConfig, setShowServerConfig] = useState(false);
+  const [configTesting, setConfigTesting] = useState(false);
+  const [configError, setConfigError] = useState('');
 
-const [serverUrl, setServerUrl] = useState(
-  localStorage.getItem("server_url") || "http://192.168.1.116:5984"
-);
-
-const [serverDB, setServerDB] = useState(
-  localStorage.getItem("server_db") || "db_fcn"
-);
-
-const [serverUser, setServerUser] = useState(
-  localStorage.getItem("server_user") || "admin"
-);
-
-const [serverPass, setServerPass] = useState(
-  localStorage.getItem("server_pass") || "512141"
-);
-
-  // test code end
+  useEffect(() => {
+    const savedIp = localStorage.getItem("server_ip");
+    if (savedIp) {
+      setServerIp(savedIp);
+      setConfigSaved(true);
+    } else {
+      // First launch — force config modal open
+      setShowServerConfig(true);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,36 +79,38 @@ const [serverPass, setServerPass] = useState(
     }
   };
 const saveServerConfig = async () => {
+  const ip = serverIp.trim();
+  if (!ip) {
+    setConfigError("Please enter the server IP address.");
+    return;
+  }
+  setConfigTesting(true);
+  setConfigError('');
   try {
-    const testUrl = `${serverUrl}/_up`;
-
-    const res = await fetch(testUrl);
-
-    if (!res.ok) {
-      throw new Error("Server not reachable");
-    }
-
-    localStorage.setItem("server_url", serverUrl);
-    localStorage.setItem("server_db", serverDB);
-    localStorage.setItem("server_user", serverUser);
-    localStorage.setItem("server_pass", serverPass);
-
-    alert("Server connected successfully");
-
+    const res = await fetch(`http://${ip}:5984/_up`);
+    if (!res.ok) throw new Error("Not reachable");
+    localStorage.setItem("server_ip", ip);
+    setConfigSaved(true);
+    setShowServerConfig(false);
     window.location.reload();
-
-  } catch (err) {
-    alert("Cannot connect to server. Please check the IP.");
+  } catch {
+    setConfigError("Cannot connect to server at that IP. Please check and try again.");
+  } finally {
+    setConfigTesting(false);
   }
 };
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-800 flex items-center justify-center p-4 relative">
 
 <button
-  onClick={() => setShowServerConfig(true)}
-  className="absolute top-6 left-6 bg-gray-800 hover:bg-gray-700 p-3 rounded-xl text-white shadow-lg"
+  onClick={() => { setConfigError(''); setShowServerConfig(true); }}
+  title="Configure Server IP"
+  className="absolute top-6 left-6 flex items-center gap-2 bg-gray-800 hover:bg-gray-700 px-4 py-3 rounded-xl text-white shadow-lg text-sm"
 >
-⚙
+  <span>⚙</span>
+  {configSaved
+    ? <span className="text-green-400 font-mono">{serverIp}</span>
+    : <span className="text-yellow-400 font-medium">Setup Server</span>}
 </button>
       <div className="w-full max-w-5xl bg-gray-900/80 backdrop-blur-lg border border-gray-700 rounded-3xl shadow-2xl overflow-hidden">
         <div className="flex flex-col lg:flex-row">
@@ -288,63 +286,62 @@ const saveServerConfig = async () => {
         </div>
       </div>
       {showServerConfig && (
-  <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+  <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+    <div className="bg-gray-900 p-8 rounded-2xl w-[420px] border border-gray-700 shadow-2xl">
 
-    <div className="bg-gray-900 p-8 rounded-2xl w-[400px] border border-gray-700">
-
-      <h3 className="text-xl text-white mb-6 font-semibold">
-        Configure Server
-      </h3>
-
-      <div className="space-y-4">
-
-        <input
-          className="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700"
-          value={serverUrl}
-          onChange={(e) => setServerUrl(e.target.value)}
-          placeholder="Server URL"
-        />
-
-        <input
-          className="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700"
-          value={serverDB}
-          onChange={(e) => setServerDB(e.target.value)}
-          placeholder="Database Name"
-        />
-
-        <input
-          className="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700"
-          value={serverUser}
-          onChange={(e) => setServerUser(e.target.value)}
-          placeholder="Username"
-        />
-
-        <input
-          type="password"
-          className="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700"
-          value={serverPass}
-          onChange={(e) => setServerPass(e.target.value)}
-          placeholder="Password"
-        />
-
+      <div className="flex items-center gap-3 mb-2">
+        <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white text-xl">⚙</div>
+        <h3 className="text-xl text-white font-semibold">Server Configuration</h3>
       </div>
 
-      <div className="flex justify-end gap-3 mt-6">
+      {!configSaved && (
+        <div className="mb-5 mt-3 p-3 bg-yellow-900/40 border border-yellow-600/50 rounded-lg">
+          <p className="text-yellow-400 text-sm font-medium">First-time setup required. Please enter the server IP address to continue.</p>
+        </div>
+      )}
 
-        <button
-          onClick={() => setShowServerConfig(false)}
-          className="px-4 py-2 bg-gray-700 rounded-lg"
-        >
-          Cancel
-        </button>
+      <p className="text-gray-400 text-sm mb-5">
+        Enter the IP address of the main host PC running CouchDB. The rest of the connection is configured automatically.
+      </p>
 
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-300 mb-2">Server IP Address</label>
+        <input
+          autoFocus
+          className="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none font-mono"
+          value={serverIp}
+          onChange={(e) => setServerIp(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") saveServerConfig(); }}
+          placeholder="e.g. 192.168.1.100"
+        />
+      </div>
+
+      <div className="p-3 bg-gray-800 rounded-lg mb-5 text-xs font-mono text-gray-400">
+        Connection: http://admin:****@<span className="text-blue-400">{serverIp || '...'}</span>:5984/db_fcn
+      </div>
+
+      {configError && (
+        <div className="mb-4 p-3 bg-red-900/40 border border-red-600/50 rounded-lg">
+          <p className="text-red-400 text-sm">{configError}</p>
+        </div>
+      )}
+
+      <div className="flex justify-end gap-3">
+        {configSaved && (
+          <button
+            onClick={() => setShowServerConfig(false)}
+            className="px-5 py-2.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm transition"
+          >
+            Cancel
+          </button>
+        )}
         <button
           onClick={saveServerConfig}
-          className="px-4 py-2 bg-blue-600 rounded-lg"
+          disabled={configTesting}
+          className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          Save
+          {configTesting ? "Testing connection..." : "Save & Connect"}
         </button>
-
       </div>
 
     </div>
