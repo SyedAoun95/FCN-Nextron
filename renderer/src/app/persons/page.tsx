@@ -13,8 +13,9 @@ export default function PersonsPage() {
   const [personName, setPersonName] = useState("");
   const [personConnectionNumber, setPersonConnectionNumber] = useState("");
   const [personAddress, setPersonAddress] = useState("");
+  const [personReceiptNo, setPersonReceiptNo] = useState("");
   const [monthlyFee, setMonthlyFee] = useState<number | ''>('');
-  const [amountPaid, setAmountPaid] = useState<number | ''>(''); // New state for amount paid
+  const [amountPaid, setAmountPaid] = useState<number | ''>('');
   const [loading, setLoading] = useState(true);
   const receiptRef = useRef<HTMLDivElement>(null);
   const [editingPerson, setEditingPerson] = useState<any>(null);
@@ -22,6 +23,7 @@ export default function PersonsPage() {
 
   // Refs for form inputs - for keyboard navigation
   const connectionRef = useRef<HTMLInputElement>(null);
+  const receiptNoRef = useRef<HTMLInputElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
   const addressRef = useRef<HTMLInputElement>(null);
   const feeRef = useRef<HTMLInputElement>(null);
@@ -87,6 +89,11 @@ const handleClearSearch = () => {
     return;
   }
 
+  if (!personReceiptNo.trim()) {
+    alert('Please enter a receipt number for the person');
+    return;
+  }
+
   if (!personAddress.trim()) {
     alert('Please enter person address');
     return;
@@ -106,13 +113,14 @@ const handleClearSearch = () => {
 
   try {
     await db.createPerson(
-      personName, 
-      areaId, 
-      personConnectionNumber.trim(), 
-      Number(monthlyFee), 
+      personName,
+      areaId,
+      personConnectionNumber.trim(),
+      Number(monthlyFee),
       personAddress.trim(),
       Number(amountPaid),
-      remainingBalance
+      remainingBalance,
+      personReceiptNo.trim()
     );
     
     const allPersons = await db.getPersonsByArea(areaId);
@@ -135,6 +143,7 @@ const handleClearSearch = () => {
           personAddress: personAddress.trim(),
           personMonthlyFee: Number(monthlyFee),
           connectionNumber: personConnectionNumber.trim(),
+          receiptNo: personReceiptNo.trim(),
           month: currentMonth,
           amount: Number(amountPaid),
           expectedAmount: Number(monthlyFee),
@@ -158,6 +167,7 @@ const handleClearSearch = () => {
     setMonthlyFee('');
     setPersonConnectionNumber('');
     setPersonAddress('');
+    setPersonReceiptNo('');
     setAmountPaid('');
   } catch (err: any) {
     alert(err?.message || 'Failed to add person');
@@ -171,6 +181,7 @@ const startEditPerson = (person: any) => {
 
   setPersonName(person.name || "");
   setPersonConnectionNumber(person.connectionNumber || "");
+  setPersonReceiptNo(person.receiptNo || "");
   setPersonAddress(person.address || "");
   setMonthlyFee(person.amount ?? "");
   setAmountPaid(person.amountPaid ?? "");
@@ -182,6 +193,7 @@ const resetForm = () => {
   setIsEditing(false);
   setPersonName("");
   setPersonConnectionNumber("");
+  setPersonReceiptNo("");
   setPersonAddress("");
   setMonthlyFee("");
   setAmountPaid("");
@@ -210,6 +222,11 @@ const updateExistingPerson = async () => {
     return;
   }
 
+  if (!personReceiptNo.trim()) {
+    alert("Please enter a receipt number for the person");
+    return;
+  }
+
   if (!personAddress.trim()) {
     alert("Please enter person address");
     return;
@@ -233,6 +250,7 @@ const updateExistingPerson = async () => {
     await db.updatePerson(editingPerson, {
       name: personName.trim(),
       connectionNumber: personConnectionNumber.trim(),
+      receiptNo: personReceiptNo.trim(),
       address: personAddress.trim(),
       amount: newMonthlyFee,
       amountPaid: newAmountPaid,
@@ -287,7 +305,7 @@ const updateExistingPerson = async () => {
   };
 
  const printReceipt = () => {
-  if (!personName.trim() || !personConnectionNumber.trim() || !personAddress.trim() || monthlyFee === '') {
+  if (!personName.trim() || !personConnectionNumber.trim() || !personReceiptNo.trim() || !personAddress.trim() || monthlyFee === '') {
     alert('Please fill all person details before printing receipt');
     return;
   }
@@ -461,7 +479,7 @@ const updateExistingPerson = async () => {
        <div class="receipt-details">
   <div class="detail-row">
     <span class="label">Receipt No:</span>
-    <span class="value">${personConnectionNumber}-${Date.now().toString().slice(-6)}</span>
+    <span class="value">${personReceiptNo}</span>
   </div>
   <div class="detail-row">
     <span class="label">Connection #:</span>
@@ -580,6 +598,7 @@ const updateExistingPerson = async () => {
         <table>
           <thead>
             <tr>
+              <th>Receipt No</th>
               <th>Conn #</th>
               <th>Person Name</th>
               <th>Address</th>
@@ -591,10 +610,11 @@ const updateExistingPerson = async () => {
           <tbody>
             ${persons.map(person => `
               <tr>
+                <td>${person.receiptNo ?? '-'}</td>
                 <td>${person.connectionNumber ?? '-'}</td>
                 <td>${person.name}</td>
                 <td>${person.address && person.address !== '-' ? person.address : '-'}</td>
-                <td>Rs.${person.amount !== undefined ? Number(person.amount).toFixed(2) : '0.00'}</td>  
+                <td>Rs.${person.amount !== undefined ? Number(person.amount).toFixed(2) : '0.00'}</td>
 <td style="color: ${Number(person.remainingBalance || 0) > 0 ? '#dc2626' : '#6b7280'}; font-weight: bold;">
   Rs.${Number(person.remainingBalance || 0).toFixed(2)}
 </td>
@@ -658,8 +678,8 @@ const updateExistingPerson = async () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
         <h2 className="text-xl font-semibold text-gray-800 mb-6">Add New Person</h2>
         
-        {/* First row: Connection # and Person Name */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        {/* First row: Connection #, Receipt No, and Person Name */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Person Connection #</label>
             <input
@@ -667,8 +687,21 @@ const updateExistingPerson = async () => {
               type="text"
               value={personConnectionNumber}
               onChange={(e) => setPersonConnectionNumber(e.target.value)}
-              onKeyDown={(e) => handleKeyDown(e, nameRef)}
+              onKeyDown={(e) => handleKeyDown(e, receiptNoRef)}
               placeholder="Enter connection number"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 placeholder-gray-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Receipt No <span className="text-red-500">*</span></label>
+            <input
+              ref={receiptNoRef}
+              type="text"
+              value={personReceiptNo}
+              onChange={(e) => setPersonReceiptNo(e.target.value)}
+              onKeyDown={(e) => handleKeyDown(e, nameRef)}
+              placeholder="Enter receipt number"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 placeholder-gray-500"
             />
           </div>
@@ -811,6 +844,9 @@ const updateExistingPerson = async () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Receipt No
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Conn #
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -837,8 +873,11 @@ const updateExistingPerson = async () => {
                 {filteredPersons.map((person) => (
                     <tr key={person._id} className="hover:bg-gray-50 transition-colors duration-150">
                       <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-blue-700">{person.receiptNo ?? '-'}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">{person.connectionNumber ?? '-'}</div>
-                      </td> 
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">{person.name}</div>
                       </td>

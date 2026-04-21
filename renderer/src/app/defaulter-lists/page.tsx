@@ -64,6 +64,7 @@ export default function DefaulterListsPage() {
 
     const tableRows = defaulters.map((d) => `
       <tr>
+        <td style="padding:8px;border-bottom:1px solid #eee">${d.receiptNo || '-'}</td>
         <td style="padding:8px;border-bottom:1px solid #eee">${d.connectionNumber || '-'}</td>
         <td style="padding:8px;border-bottom:1px solid #eee">${d.name}</td>
         <td style="padding:8px;border-bottom:1px solid #eee">${d.address || '-'}</td>
@@ -96,6 +97,7 @@ export default function DefaulterListsPage() {
         <table>
           <thead>
             <tr>
+              <th>Receipt No</th>
               <th>Conn #</th>
               <th>Name</th>
               <th>Address</th>
@@ -172,6 +174,7 @@ export default function DefaulterListsPage() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-red-50">
                   <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-red-700 uppercase tracking-wider">Receipt No</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-red-700 uppercase tracking-wider">Conn #</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-red-700 uppercase tracking-wider">Person Name</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-red-700 uppercase tracking-wider">Address</th>
@@ -184,6 +187,9 @@ export default function DefaulterListsPage() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {defaulters.map((person) => (
                     <tr key={person._id} className="hover:bg-red-50 transition-colors duration-150 bg-yellow-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-blue-700">{person.receiptNo ?? '-'}</div>
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">{person.connectionNumber ?? '-'}</div>
                       </td>

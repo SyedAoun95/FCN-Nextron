@@ -8,32 +8,21 @@ export const initDB = async () => {
   PouchDB.plugin(PouchDBFind);
 
   const localDB = new PouchDB("crud-database");
-const remoteDB = new PouchDB(
-  "http://admin:512141@10.144.36.32:5984/db_fcn"
-);
-// const localDB = new PouchDB("crud-database");
 
-// const savedServerUrl = localStorage.getItem("server_url");
-// const savedDbName = localStorage.getItem("server_db");
-// const savedUsername = localStorage.getItem("server_user");
-// const savedPassword = localStorage.getItem("server_pass");
-
-// if (!savedServerUrl || !savedDbName || !savedUsername || !savedPassword) {
-//   throw new Error("Server not configured. Please configure the server first.");
-// }
-
-// const remoteDB = new PouchDB(`${savedServerUrl}/${savedDbName}`, {
-//   auth: {
-//     username: savedUsername,
-//     password: savedPassword,
-//   },
-// });
+  const savedIp = localStorage.getItem("server_ip");
+  const remoteDB = savedIp
+    ? new PouchDB(`http://admin:512141@${savedIp}:5984/db_fcn`)
+    : null;
 
 
   // ---------------------------
   // LIVE TWO-WAY SYNC
   // ---------------------------
   const syncDB = () => {
+    if (!remoteDB) {
+      console.warn("No server IP configured — running in local-only mode");
+      return;
+    }
     localDB
       .sync(remoteDB, { live: true, retry: true })
       .on("change", (info) => console.log("DB Change:", info))
@@ -107,7 +96,8 @@ const remoteDB = new PouchDB(
   amount?: number,          // monthly fee
   address?: string,
   amountPaid: number = 0,   // new parameter with default 0
-  remainingBalance?: number // new parameter (optional, but we'll calculate it)
+  remainingBalance?: number, // new parameter (optional, but we'll calculate it)
+  receiptNo?: string
 ) => {
   if (!name.trim() || !areaId) throw new Error("Invalid input");
 
@@ -115,6 +105,11 @@ const remoteDB = new PouchDB(
 
   if (!conn) {
     throw new Error('Connection number is required for a person');
+  }
+
+  const receipt = receiptNo !== undefined ? String(receiptNo).trim() : "";
+  if (!receipt) {
+    throw new Error('Receipt number is required for a person');
   }
 
   // Ensure uniqueness of connectionNumber across persons
@@ -135,10 +130,11 @@ const remoteDB = new PouchDB(
     name: name.trim(),
     areaId,
     connectionNumber: conn,
+    receiptNo: receipt,
     amount: monthlyFeeNum,                    // monthly fee
     address: address?.trim() || '-',          // safe default
     amountPaid: paidNum,                      // initial payment
-    remainingBalance: Number(remainingBalance ?? calculatedRemaining),  // ← THIS IS THE FIX
+    remainingBalance: Number(remainingBalance ?? calculatedRemaining),
     status: 'active',
     createdAt: new Date().toISOString(),
   };
