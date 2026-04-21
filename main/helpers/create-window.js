@@ -1,7 +1,7 @@
-import { screen, BrowserWindow } from 'electron'
-import Store from 'electron-store'
+const { screen, BrowserWindow } = require('electron')
+const Store = require('electron-store')
 
-export const createWindow = (windowName, options) => {
+const createWindow = (windowName, options) => {
   const key = 'window-state'
   const name = `window-state-${windowName}`
   const store = new Store({ name })
@@ -76,3 +76,5 @@ export const createWindow = (windowName, options) => {
 
   return win
 }
+
+module.exports = { createWindow }

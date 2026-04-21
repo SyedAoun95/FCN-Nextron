@@ -269,7 +269,7 @@ const updateExistingPerson = async () => {
 };
 
   // Keyboard navigation handler for Tab key - moves focus between inputs
-  const handleKeyDown = (e: React.KeyboardEvent, nextRef: React.RefObject<HTMLInputElement> | null) => {
+  const handleKeyDown = (e: React.KeyboardEvent, nextRef?: any) => {
     if ((e.key === "Tab" || e.key === "Enter") && !e.shiftKey && nextRef) {
       e.preventDefault();
       nextRef.current?.focus();
@@ -702,7 +702,7 @@ const updateExistingPerson = async () => {
               type="text"
               value={personConnectionNumber}
               onChange={(e) => setPersonConnectionNumber(e.target.value)}
-              onKeyDown={(e) => handleKeyDown(e, receiptNoRef)}
+              onKeyDown={(e) => handleKeyDown(e, receiptNoRef as any)}
               placeholder="Enter connection number"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 placeholder-gray-500"
             />
@@ -715,7 +715,7 @@ const updateExistingPerson = async () => {
               type="text"
               value={personReceiptNo}
               onChange={(e) => setPersonReceiptNo(e.target.value)}
-              onKeyDown={(e) => handleKeyDown(e, nameRef)}
+              onKeyDown={(e) => handleKeyDown(e, nameRef as any)}
               placeholder="Enter receipt number"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 placeholder-gray-500"
             />
@@ -728,7 +728,7 @@ const updateExistingPerson = async () => {
               type="text"
               value={personName}
               onChange={(e) => setPersonName(e.target.value)}
-              onKeyDown={(e) => handleKeyDown(e, addressRef)}
+              onKeyDown={(e) => handleKeyDown(e, addressRef as any)}
               placeholder="Enter person name..."
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 placeholder-gray-500"
             />
@@ -744,7 +744,7 @@ const updateExistingPerson = async () => {
               type="text"
               value={personAddress}
               onChange={(e) => setPersonAddress(e.target.value)}
-              onKeyDown={(e) => handleKeyDown(e, feeRef)}
+              onKeyDown={(e) => handleKeyDown(e, feeRef as any)}
               placeholder="Enter address..."
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 placeholder-gray-500"
             />
@@ -757,7 +757,7 @@ const updateExistingPerson = async () => {
               type="number"
               value={monthlyFee === '' ? '' : monthlyFee}
               onChange={(e) => setMonthlyFee(e.target.value === '' ? '' : Number(e.target.value))}
-              onKeyDown={(e) => handleKeyDown(e, amountPaidRef)}
+              onKeyDown={(e) => handleKeyDown(e, amountPaidRef as any)}
               placeholder="Enter monthly fee"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 placeholder-gray-500"
             />

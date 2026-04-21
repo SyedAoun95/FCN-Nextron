@@ -4,7 +4,7 @@
   "description": "My application description",
   "version": "1.0.0",
   "author": "Yoshihide Shiono <shiono.yoshihide@gmail.com>",
-  "main": "app/background.js",
+  "main": "main/background.js",
   "scripts": {
     "dev": "nextron",
     "build": "nextron build",

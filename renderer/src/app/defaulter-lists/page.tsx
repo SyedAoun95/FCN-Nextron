@@ -6,6 +6,8 @@ import { initDB } from "../services/db";
 interface Area {
   _id: string;
   name: string;
+  type?: string;
+  createdAt?: string;
 }
 
 export default function DefaulterListsPage() {
@@ -22,7 +24,7 @@ export default function DefaulterListsPage() {
         pouch.syncDB();
         setDb(pouch);
         const allAreas = await pouch.getAreas();
-        setAreas(allAreas);
+        setAreas(allAreas as unknown as Area[]);
       }
     };
     setupDB();
