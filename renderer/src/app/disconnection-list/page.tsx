@@ -6,6 +6,8 @@ import { initDB } from "../services/db";
 interface Area {
   _id: string;
   name: string;
+  type?: string;
+  createdAt?: string;
 }
 
 export default function DisconnectionListPage() {
@@ -23,7 +25,7 @@ export default function DisconnectionListPage() {
       pouch.syncDB();
       setDb(pouch);
       const allAreas = await pouch.getAreas();
-      setAreas(allAreas);
+      setAreas(allAreas as unknown as Area[]);
     };
     setup();
   }, []);

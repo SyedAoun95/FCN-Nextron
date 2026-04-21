@@ -1,1 +1,1 @@
-export * from './create-window'
+module.exports = require('./create-window.js')

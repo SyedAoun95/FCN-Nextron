@@ -1,7 +1,7 @@
-import path from 'path'
-import { app, ipcMain } from 'electron'
-import serve from 'electron-serve'
-import { createWindow } from './helpers'
+const path = require('path')
+const { app, ipcMain } = require('electron')
+const serve = require('electron-serve')
+const { createWindow } = require('./helpers/index.js')
 
 const isProd = process.env.NODE_ENV === 'production'
 
