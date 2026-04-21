@@ -1681,7 +1681,12 @@ const transactionRows = records
               <td className="px-6 py-3 text-sm text-gray-500">
                 Rs.{Number(row.personMonthlyFee).toFixed(2)}
               </td>
-              <td className="px-6 py-3 text-sm text-gray-500">{row.month || '-'}</td>
+              <td className="px-6 py-3 text-sm text-gray-500">
+                {row.month || '-'}
+                {row.isCreditNote && (
+                  <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-medium">CREDIT</span>
+                )}
+              </td>
               <td className="px-6 py-3 text-sm text-gray-900 font-medium">
                 Rs.{Number(row.amount).toFixed(2)}
               </td>

@@ -286,6 +286,21 @@ const updateExistingPerson = async () => {
     setPersons(allPersons);
   };
 
+  const disconnectPerson = async (person: any) => {
+    if (!db) return;
+    if (!confirm(`Disconnect ${person.name} (Conn #${person.connectionNumber || 'unknown'})? They will be moved to the Disconnection List.`)) {
+      return;
+    }
+    try {
+      await db.moveToDisconnected(person);
+      const allPersons = await db.getPersonsByArea(selectedArea);
+      setPersons(allPersons);
+      alert("Connection disconnected successfully.");
+    } catch (err: any) {
+      alert("Failed to disconnect: " + (err?.message || "Unknown error"));
+    }
+  };
+
   const moveToDefaulterList = async (person: any) => {
     if (!db) return;
 
@@ -899,7 +914,7 @@ const updateExistingPerson = async () => {
                           Active
                         </span>
                       </td>
-                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex gap-2">
+                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex gap-2 flex-wrap">
   <button
     onClick={() => startEditPerson(person)}
     className="text-blue-600 hover:text-blue-900 hover:bg-blue-50 px-3 py-1 rounded-md transition-colors duration-200"
@@ -907,14 +922,21 @@ const updateExistingPerson = async () => {
     Edit
   </button>
 
-  <button 
+  <button
+    onClick={() => disconnectPerson(person)}
+    className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-3 py-1 rounded-md transition-colors duration-200 border border-gray-300"
+  >
+    Disconnect
+  </button>
+
+  <button
     onClick={() => moveToDefaulterList(person)}
     className="text-orange-600 hover:text-orange-900 hover:bg-orange-50 px-3 py-1 rounded-md transition-colors duration-200"
   >
     Move to Defaulter
   </button>
 
-  <button 
+  <button
     onClick={() => deletePerson(person)}
     className="text-red-600 hover:text-red-900 hover:bg-red-50 px-3 py-1 rounded-md transition-colors duration-200"
   >

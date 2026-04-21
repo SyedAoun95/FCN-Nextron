@@ -209,6 +209,47 @@ export const initDB = async () => {
   }
 };
 
+  const moveToDisconnected = async (person: any) => {
+    const updatedPerson = {
+      ...person,
+      status: "disconnected",
+      disconnectedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    return localDB.put(updatedPerson);
+  };
+
+  const reconnectPerson = async (person: any) => {
+    const updatedPerson = {
+      ...person,
+      status: "active",
+      disconnectedAt: null,
+      updatedAt: new Date().toISOString(),
+    };
+    return localDB.put(updatedPerson);
+  };
+
+  const getDisconnectedPersons = async (areaId: string) => {
+    const res = await localDB.allDocs({ include_docs: true });
+    return res.rows
+      .map((row: any) => row.doc)
+      .filter(
+        (doc: any) =>
+          doc &&
+          !doc._deleted &&
+          doc.type === "person" &&
+          doc.areaId === areaId &&
+          doc.status === "disconnected"
+      );
+  };
+
+  const getAllDisconnected = async () => {
+    const res = await localDB.allDocs({ include_docs: true });
+    return res.rows
+      .map((row: any) => row.doc)
+      .filter((doc: any) => doc && !doc._deleted && doc.type === "person" && doc.status === "disconnected");
+  };
+
   const deletePerson = async (person: any) => {
   try {
     // Check if person is already a defaulter - if yes, completely delete
@@ -548,7 +589,10 @@ const monthlyRevenue = async (year: number, month: number) => {
     deletePerson,
     moveTodefalterList,
     getAllDefaulters,
-    deletePerson,
+    moveToDisconnected,
+    reconnectPerson,
+    getDisconnectedPersons,
+    getAllDisconnected,
 
     totalConnections,
     grandTotalRevenue,
